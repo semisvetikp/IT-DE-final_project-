@@ -1,0 +1,168 @@
+CREATE TABLE ITDE1.SVET_STG_ACCOUNTS
+(
+    ACCOUNT CHAR(20),
+    VALID_TO DATE,
+    CLIENT VARCHAR2(20),
+    CREATE_DT DATE,
+    UPDATE_DT DATE
+);
+
+CREATE TABLE ITDE1.SVET_STG_CARDS
+(
+    CARD_NUM CHAR(20),
+    ACCOUNT CHAR(20),
+    CREATE_DT DATE,
+    UPDATE_DT DATE
+);
+
+CREATE TABLE ITDE1.SVET_STG_CLIENTS
+(
+    CLIENT_ID VARCHAR2(20),
+    LAST_NAME VARCHAR2(100),
+    FIRST_NAME VARCHAR2(100),
+    PATRONYMIC VARCHAR2(100),
+    DATE_OF_BIRTH DATE,
+    PASSPORT_NUM VARCHAR2(15),
+    PASSPORT_VALID_TO DATE,
+    PHONE VARCHAR2(20),
+    CREATE_DT DATE,
+    UPDATE_DT DATE
+);
+
+CREATE TABLE ITDE1.SVET_STG_PASSPORT_BLACKLIST
+(
+    entry_dt    varchar2(20),
+    passport_num varchar2(15)
+);
+
+drop table ITDE1.SVET_STG_TERMINALS;
+CREATE TABLE ITDE1.SVET_STG_TERMINALS
+(
+    terminal_id	varchar2(10),
+    terminal_type	varchar2(5),
+    terminal_city	varchar2(50),
+    terminal_address varchar2(100)
+);
+
+CREATE TABLE ITDE1.SVET_STG_TRANSACTIONS
+(
+    transaction_id	varchar2(15),
+    transaction_date	varchar2(20),
+    amount	varchar2(20),
+    card_num	varchar2(20),
+    oper_type	varchar2(10),
+    oper_result	varchar2(10),
+    terminal 	varchar2(10)
+);
+
+--DWH
+
+CREATE TABLE ITDE1.SVET_DWH_DIM_ACCOUNTS_HIST
+(
+    ACCOUNT CHAR(20),
+    VALID_TO DATE,
+    CLIENT VARCHAR2(20),
+	effective_from date,
+	effective_to date,
+	deleted_flg char( 1 )
+);
+
+CREATE TABLE ITDE1.SVET_DWH_DIM_CARDS_HIST
+(
+    CARD_NUM CHAR(20),
+    ACCOUNT CHAR(20),
+	effective_from date,
+	effective_to date,
+	deleted_flg char( 1 )
+);
+
+CREATE TABLE ITDE1.SVET_DWH_DIM_CLIENTS_HIST
+(
+    CLIENT_ID VARCHAR2(20),
+    LAST_NAME VARCHAR2(100),
+    FIRST_NAME VARCHAR2(100),
+    PATRONYMIC VARCHAR2(100),
+    DATE_OF_BIRTH DATE,
+    PASSPORT_NUM VARCHAR2(15),
+    PASSPORT_VALID_TO DATE,
+    PHONE VARCHAR2(20),
+	effective_from date,
+	effective_to date,
+	deleted_flg char( 1 )
+);
+
+CREATE TABLE ITDE1.SVET_DWH_FACT_PSSPRT_BLCKLST
+(
+    entry_dt    date,
+    passport_num varchar2(15)
+);
+
+CREATE TABLE ITDE1.SVET_DWH_DIM_TERMINALS_HIST
+(
+    terminal_id	varchar2(10),
+    terminal_type	varchar2(5),
+    terminal_city	varchar2(50),
+    terminal_address varchar2(100),
+	effective_from date,
+	effective_to date,
+	deleted_flg char( 1 )
+);
+
+CREATE TABLE ITDE1.SVET_DWH_FACT_TRANSACTIONS
+(
+    transaction_id	varchar2(15),
+    transaction_date	date,
+    amount	varchar2(20),
+    card_num	varchar2(20),
+    oper_type	varchar2(10),
+    oper_result	varchar2(10),
+    terminal 	varchar2(10)
+);
+
+
+CREATE TABLE ITDE1.SVET_META_LOADING
+	 (  	DBNAME VARCHAR2(30),
+			TABLENAME VARCHAR2(30),
+			LAST_UPDATE DATE
+	 );
+
+INSERT INTO ITDE1.SVET_META_LOADING (DBNAME, TABLENAME, LAST_UPDATE)
+VALUES ('ITDE1', 'SVET_DWH_DIM_ACCOUNTS_HIST', to_date('1900-01-01', 'YYYY-MM-DD'));
+
+INSERT INTO ITDE1.SVET_META_LOADING (DBNAME, TABLENAME, LAST_UPDATE)
+VALUES ('ITDE1', 'SVET_DWH_DIM_CARDS_HIST', to_date('1900-01-01', 'YYYY-MM-DD'));
+
+INSERT INTO ITDE1.SVET_META_LOADING (DBNAME, TABLENAME, LAST_UPDATE)
+VALUES ('ITDE1', 'SVET_DWH_DIM_CLIENTS_HIST', to_date('1900-01-01', 'YYYY-MM-DD'));
+
+INSERT INTO ITDE1.SVET_META_LOADING (DBNAME, TABLENAME, LAST_UPDATE)
+VALUES ('ITDE1', 'SVET_DWH_FACT_PSSPRT_BLCKLST', to_date('1900-01-01', 'YYYY-MM-DD'));
+
+INSERT INTO ITDE1.SVET_META_LOADING (DBNAME, TABLENAME, LAST_UPDATE)
+VALUES ('ITDE1', 'SVET_DWH_DIM_TERMINALS_HIST', to_date('1900-01-01', 'YYYY-MM-DD'));
+
+INSERT INTO ITDE1.SVET_META_LOADING (DBNAME, TABLENAME, LAST_UPDATE)
+VALUES ('ITDE1', 'SVET_DWH_FACT_TRANSACTIONS', to_date('1900-01-01', 'YYYY-MM-DD'));
+
+
+CREATE TABLE ITDE1.SVET_REP_FRAUD
+	 (
+	    event_dt date,
+	    passport VARCHAR2(30),
+		fio VARCHAR2(100),
+		phone  VARCHAR2(20),
+		event_type VARCHAR2(100),
+		report_dt date
+	 );
+
+CREATE TABLE ITDE1.SVET_STG_DEL_ACCOUNTS
+(ACCOUNT CHAR(20) );
+
+CREATE TABLE ITDE1.SVET_STG_DEL_CARDS
+( CARD_NUM CHAR(20));
+
+CREATE TABLE ITDE1.SVET_STG_DEL_TERMINALS
+( terminal_id	varchar2(11) );
+
+CREATE TABLE ITDE1.SVET_STG_DEL_CLIENTS
+(CLIENT_ID VARCHAR2(20));
