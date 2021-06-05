@@ -1,6 +1,6 @@
 CREATE TABLE ITDE1.SVET_STG_ACCOUNTS
 (
-    ACCOUNT CHAR(20),
+    ACCOUNT_NUM CHAR(20),
     VALID_TO DATE,
     CLIENT VARCHAR2(20),
     CREATE_DT DATE,
@@ -10,7 +10,7 @@ CREATE TABLE ITDE1.SVET_STG_ACCOUNTS
 CREATE TABLE ITDE1.SVET_STG_CARDS
 (
     CARD_NUM CHAR(20),
-    ACCOUNT CHAR(20),
+    ACCOUNT_NUM CHAR(20),
     CREATE_DT DATE,
     UPDATE_DT DATE
 );
@@ -46,12 +46,12 @@ CREATE TABLE ITDE1.SVET_STG_TERMINALS
 
 CREATE TABLE ITDE1.SVET_STG_TRANSACTIONS
 (
-    transaction_id	varchar2(15),
-    transaction_date	varchar2(20),
-    amount	varchar2(20),
+    trans_id	varchar2(15),
+    trans_date	varchar2(20),
     card_num	varchar2(20),
     oper_type	varchar2(10),
     oper_result	varchar2(10),
+    amt	varchar2(20),
     terminal 	varchar2(10)
 );
 
@@ -59,7 +59,7 @@ CREATE TABLE ITDE1.SVET_STG_TRANSACTIONS
 
 CREATE TABLE ITDE1.SVET_DWH_DIM_ACCOUNTS_HIST
 (
-    ACCOUNT CHAR(20),
+    ACCOUNT_NUM CHAR(20),
     VALID_TO DATE,
     CLIENT VARCHAR2(20),
 	effective_from date,
@@ -67,10 +67,11 @@ CREATE TABLE ITDE1.SVET_DWH_DIM_ACCOUNTS_HIST
 	deleted_flg char( 1 )
 );
 
+
 CREATE TABLE ITDE1.SVET_DWH_DIM_CARDS_HIST
 (
     CARD_NUM CHAR(20),
-    ACCOUNT CHAR(20),
+    ACCOUNT_NUM CHAR(20),
 	effective_from date,
 	effective_to date,
 	deleted_flg char( 1 )
@@ -108,13 +109,14 @@ CREATE TABLE ITDE1.SVET_DWH_DIM_TERMINALS_HIST
 	deleted_flg char( 1 )
 );
 
+
 CREATE TABLE ITDE1.SVET_DWH_FACT_TRANSACTIONS
 (
-    transaction_id	varchar2(15),
-    transaction_date	date,
-    amount	varchar2(20),
+    trans_id	varchar2(15),
+    trans_date	date,
     card_num	varchar2(20),
     oper_type	varchar2(10),
+    amt	decimal(11,2),
     oper_result	varchar2(10),
     terminal 	varchar2(10)
 );
@@ -166,3 +168,39 @@ CREATE TABLE ITDE1.SVET_STG_DEL_TERMINALS
 
 CREATE TABLE ITDE1.SVET_STG_DEL_CLIENTS
 (CLIENT_ID VARCHAR2(20));
+
+
+insert into itde1.SVET_DWH_DIM_ACCOUNTS_HIST (ACCOUNT_NUM, VALID_TO, CLIENT, EFFECTIVE_FROM, EFFECTIVE_TO, DELETED_FLG )
+select
+    ak.ACCOUNT,
+    ak.VALID_TO,
+    ak.CLIENT,
+    ak.CREATE_DT,
+    to_date('2999-12-31', 'YYYY-MM-DD'),
+    'N'
+from bank.ACCOUNTS ak;
+
+insert into itde1.SVET_DWH_DIM_CARDS_HIST (CARD_NUM, ACCOUNT_NUM, EFFECTIVE_FROM, EFFECTIVE_TO, DELETED_FLG )
+select
+    c.CARD_NUM,
+    c.ACCOUNT,
+    c.CREATE_DT,
+    to_date('2999-12-31', 'YYYY-MM-DD'),
+    'N'
+from bank.cards c;
+
+
+insert into itde1.SVET_DWH_DIM_CLIENTS_HIST (CLIENT_ID, LAST_NAME, FIRST_NAME, PATRONYMIC, DATE_OF_BIRTH, PASSPORT_NUM, PASSPORT_VALID_TO, PHONE, EFFECTIVE_FROM, EFFECTIVE_TO, DELETED_FLG)
+select
+    cl.CLIENT_ID,
+    cl.LAST_NAME,
+    cl.FIRST_NAME,
+    cl.PATRONYMIC,
+    cl.DATE_OF_BIRTH,
+    cl.PASSPORT_NUM,
+    cl.PASSPORT_VALID_TO,
+    cl.PHONE,
+    cl.CREATE_DT,
+    to_date('2999-12-31', 'YYYY-MM-DD'),
+    'N'
+from bank.CLIENTS cl;
