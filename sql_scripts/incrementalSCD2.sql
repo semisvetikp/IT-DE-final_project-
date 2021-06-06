@@ -60,11 +60,11 @@ WHERE COALESCE( UPDATE_DT, CREATE_DT ) > (
 -- 3. Обновляем обновленные строки в хранилище
 
 -- Вставка фактов
-INSERT INTO ITDE1.SVET_DWH_FACT_TRANSACTIONS(transaction_id, transaction_date, amount, card_num, oper_type, oper_result, terminal )
+INSERT INTO ITDE1.SVET_DWH_FACT_TRANSACTIONS(trans_id, trans_date, amt, card_num, oper_type, oper_result, terminal )
 SELECT
-    transaction_id,
-    to_date(transaction_date, 'YYYY-MM-DD HH24:MI:SS'),
-    TO_NUMBER (REPLACE(amount, ',', '.')),
+    trans_id,
+    to_date(trans_date, 'YYYY-MM-DD HH24:MI:SS'),
+    TO_NUMBER (REPLACE(amt, ',', '.')),
     card_num,
     oper_type,
     oper_result,
@@ -79,9 +79,9 @@ from ITDE1.SVET_STG_PASSPORT_BLACKLIST;
 
 -- Загрузка измерений
 
-INSERT INTO ITDE1.SVET_DWH_DIM_ACCOUNTS_HIST (ACCOUNT, VALID_TO, CLIENT, EFFECTIVE_FROM, EFFECTIVE_TO, DELETED_FLG)
+INSERT INTO ITDE1.SVET_DWH_DIM_ACCOUNTS_HIST (ACCOUNT_NUM, VALID_TO, CLIENT, EFFECTIVE_FROM, EFFECTIVE_TO, DELETED_FLG)
 select
-    ACCOUNT,
+    ACCOUNT_NUM,
     VALID_TO,
     CLIENT,
     UPDATE_DT,
@@ -91,15 +91,15 @@ from ITDE1.SVET_STG_ACCOUNTS;
 
 MERGE INTO ITDE1.SVET_DWH_DIM_ACCOUNTS_HIST tgt
 USING ITDE1.SVET_STG_ACCOUNTS stg
-ON ( tgt.ACCOUNT = stg.ACCOUNT  and tgt.EFFECTIVE_FROM < stg.UPDATE_DT )
+ON ( tgt.ACCOUNT_NUM = stg.ACCOUNT_NUM  and tgt.EFFECTIVE_FROM < stg.UPDATE_DT )
 WHEN MATCHED THEN UPDATE SET
     tgt.EFFECTIVE_TO = to_date(stg.UPDATE_DT) - interval '1' second
         WHERE tgt.EFFECTIVE_TO =  to_date( '2999-12-31', 'YYYY-MM-DD' );
 --
-INSERT INTO ITDE1.SVET_DWH_DIM_CARDS_HIST (CARD_NUM, ACCOUNT, EFFECTIVE_FROM, EFFECTIVE_TO, DELETED_FLG)
+INSERT INTO ITDE1.SVET_DWH_DIM_CARDS_HIST (CARD_NUM, ACCOUNT_NUM, EFFECTIVE_FROM, EFFECTIVE_TO, DELETED_FLG)
 select
     CARD_NUM,
-    ACCOUNT,
+    ACCOUNT_NUM,
     UPDATE_DT,
     to_date( '2999-12-31', 'YYYY-MM-DD' ),
     'N'
@@ -171,9 +171,9 @@ select CLIENT_ID from bank.CLIENTS;
 -- 5. Удаляем удаленные записи в целевой таблице (опционально)
 
 -- открываем новую версию
-insert into ITDE1.SVET_DWH_DIM_ACCOUNTS_HIST (ACCOUNT, VALID_TO, CLIENT, EFFECTIVE_FROM, EFFECTIVE_TO, DELETED_FLG)
+insert into ITDE1.SVET_DWH_DIM_ACCOUNTS_HIST (ACCOUNT_NUM, VALID_TO, CLIENT, EFFECTIVE_FROM, EFFECTIVE_TO, DELETED_FLG)
 select
-    tbl.ACCOUNT,
+    tbl.ACCOUNT_NUM,
     tbl.VALID_TO,
     tbl.CLIENT,
 	to_date(tbl.EFFECTIVE_TO) + interval '1' second,
@@ -183,31 +183,31 @@ from
     (select t.*
      from ITDE1.SVET_DWH_DIM_ACCOUNTS_HIST t
     left join ITDE1.SVET_STG_DEL_ACCOUNTS s
-    on t.ACCOUNT = s.ACCOUNT
+    on t.ACCOUNT_NUM = s.ACCOUNT
         and EFFECTIVE_TO = to_date( '2999-12-31', 'YYYY-MM-DD' )
         and DELETED_FLG = 'N'
-    where s.ACCOUNT is null ) tbl;
+    where s.ACCOUNT is null and t.EFFECTIVE_TO = to_date( '2999-12-31', 'YYYY-MM-DD')) tbl;
 
 -- закрываем предыдущую версию
 update ITDE1.SVET_DWH_DIM_ACCOUNTS_HIST
 set effective_to = sysdate - interval '1' second
-where ACCOUNT in (
-	select t.ACCOUNT
+where ACCOUNT_NUM in (
+	select t.ACCOUNT_NUM
 	from ITDE1.SVET_DWH_DIM_ACCOUNTS_HIST t
 	left join ITDE1.SVET_STG_DEL_ACCOUNTS s
-	on t.ACCOUNT = s.ACCOUNT
+	on t.ACCOUNT_NUM = s.ACCOUNT
 		and EFFECTIVE_TO = to_date( '2999-12-31', 'YYYY-MM-DD' )
 		and DELETED_FLG = 'N'
-	where s.ACCOUNT is null )
+	where s.ACCOUNT is null and t.EFFECTIVE_TO = to_date( '2999-12-31', 'YYYY-MM-DD'))
 and EFFECTIVE_TO = to_date( '2999-12-31', 'YYYY-MM-DD' )
 and EFFECTIVE_FROM < sysdate;
 
 
 -- открываем новую версию
-insert into ITDE1.SVET_DWH_DIM_CARDS_HIST (CARD_NUM, ACCOUNT, EFFECTIVE_FROM, EFFECTIVE_TO, DELETED_FLG)
+insert into ITDE1.SVET_DWH_DIM_CARDS_HIST (CARD_NUM, ACCOUNT_NUM, EFFECTIVE_FROM, EFFECTIVE_TO, DELETED_FLG)
 select
     tbl.CARD_NUM,
-    tbl.ACCOUNT,
+    tbl.ACCOUNT_NUM,
 	to_date(tbl.EFFECTIVE_TO) + interval '1' second,
 	to_date( '2999-12-31', 'YYYY-MM-DD' ),
 	'Y'
@@ -218,7 +218,7 @@ from
     on t.CARD_NUM = s.CARD_NUM
         and EFFECTIVE_TO = to_date( '2999-12-31', 'YYYY-MM-DD' )
         and DELETED_FLG = 'N'
-    where s.CARD_NUM is null ) tbl;
+    where s.CARD_NUM is null and t.EFFECTIVE_TO = to_date( '2999-12-31', 'YYYY-MM-DD')) tbl
 
 -- закрываем предыдущую версию
 update ITDE1.SVET_DWH_DIM_CARDS_HIST
@@ -230,7 +230,7 @@ where CARD_NUM in (
 	on t.CARD_NUM = s.CARD_NUM
 		and EFFECTIVE_TO = to_date( '2999-12-31', 'YYYY-MM-DD' )
 		and DELETED_FLG = 'N'
-	where s.CARD_NUM is null )
+	where s.CARD_NUM is null and t.EFFECTIVE_TO = to_date( '2999-12-31', 'YYYY-MM-DD'))
 and EFFECTIVE_TO = to_date( '2999-12-31', 'YYYY-MM-DD' )
 and EFFECTIVE_FROM < sysdate;
 ---
@@ -254,7 +254,7 @@ from
     on t.CLIENT_ID = s.CLIENT_ID
         and EFFECTIVE_TO = to_date( '2999-12-31', 'YYYY-MM-DD' )
         and DELETED_FLG = 'N'
-    where s.CLIENT_ID is null ) tbl;
+    where s.CLIENT_ID is null and t.EFFECTIVE_TO = to_date( '2999-12-31', 'YYYY-MM-DD')) tbl;
 
 update ITDE1.SVET_DWH_DIM_CLIENTS_HIST
 set effective_to = sysdate - interval '1' second
@@ -265,7 +265,7 @@ where CLIENT_ID in (
 	on t.CLIENT_ID = s.CLIENT_ID
 		and EFFECTIVE_TO = to_date( '2999-12-31', 'YYYY-MM-DD' )
 		and DELETED_FLG = 'N'
-	where s.CLIENT_ID is null )
+	where s.CLIENT_ID is null and t.EFFECTIVE_TO = to_date( '2999-12-31', 'YYYY-MM-DD'))
 and EFFECTIVE_TO = to_date( '2999-12-31', 'YYYY-MM-DD' )
 and EFFECTIVE_FROM < sysdate;
 ---
@@ -285,7 +285,7 @@ from
     on t.TERMINAL_ID = s.TERMINAL_ID
         and EFFECTIVE_TO = to_date( '2999-12-31', 'YYYY-MM-DD' )
         and DELETED_FLG = 'N'
-    where s.TERMINAL_ID is null and t.EFFECTIVE_TO = to_date( '2999-12-31', 'YYYY-MM-DD' )) tbl;
+    where s.TERMINAL_ID is null and t.EFFECTIVE_TO = to_date( '2999-12-31', 'YYYY-MM-DD')) tbl;
 
 update ITDE1.SVET_DWH_DIM_TERMINALS_HIST
 set effective_to = (select LAST_UPDATE from ITDE1.SVET_META_LOADING WHERE DBNAME = 'ITDE1' AND TABLENAME = 'SVET_DWH_DIM_TERMINALS_HIST')
@@ -296,7 +296,7 @@ where TERMINAL_ID in (
 	on t.TERMINAL_ID = s.TERMINAL_ID
 		and EFFECTIVE_TO = to_date( '2999-12-31', 'YYYY-MM-DD' )
 		and DELETED_FLG = 'N'
-	where s.TERMINAL_ID is null and t.EFFECTIVE_TO = to_date( '2999-12-31', 'YYYY-MM-DD' ) )
+	where s.TERMINAL_ID is null and t.EFFECTIVE_TO = to_date( '2999-12-31', 'YYYY-MM-DD'))
 and EFFECTIVE_TO = to_date( '2999-12-31', 'YYYY-MM-DD' )
 and EFFECTIVE_FROM < (select LAST_UPDATE from ITDE1.SVET_META_LOADING WHERE DBNAME = 'ITDE1' AND TABLENAME = 'SVET_DWH_DIM_TERMINALS_HIST') + interval '1' second;
 
@@ -330,11 +330,11 @@ WHERE 1=1
 	AND ( SELECT MAX(to_date(ENTRY_DT, 'YYYY-MM-DD HH24:MI:SS')) FROM ITDE1.SVET_STG_PASSPORT_BLACKLIST ) IS NOT NULL;
 
 UPDATE ITDE1.SVET_META_LOADING
-SET LAST_UPDATE = trunc(( SELECT MAX(to_date(TRANSACTION_DATE, 'YYYY-MM-DD HH24:MI:SS')) FROM ITDE1.SVET_STG_TRANSACTIONS ), 'DD')
+SET LAST_UPDATE = trunc(( SELECT MAX(to_date(trans_date, 'YYYY-MM-DD HH24:MI:SS')) FROM ITDE1.SVET_STG_TRANSACTIONS ), 'DD')
 WHERE 1=1
 	AND DBNAME = 'ITDE1'
 	AND TABLENAME = 'SVET_DWH_FACT_TRANSACTIONS'
-	AND ( SELECT MAX(to_date(TRANSACTION_DATE, 'YYYY-MM-DD HH24:MI:SS')) FROM ITDE1.SVET_STG_TRANSACTIONS ) IS NOT NULL;
+	AND ( SELECT MAX(to_date(trans_date, 'YYYY-MM-DD HH24:MI:SS')) FROM ITDE1.SVET_STG_TRANSACTIONS ) IS NOT NULL
 
 -- 7. Фиксируется транзакция
 COMMIT;
